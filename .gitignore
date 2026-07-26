@@ -1,0 +1,16 @@
+.env
+compose.override.yaml
+data/
+backups/
+certs/
+*.log
+*.sqlite3*
+db.sqlite3*
+rsa_key*
+attachments/
+sends/
+icon_cache/
+tmp/
+.DS_Store
+.idea/
+.vscode/

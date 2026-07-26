@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+while true; do
+  clear || true
+  cat <<'MENU'
+==================================
+ Vaultwarden LAU Control
+==================================
+1) Telepítés / újrakonfigurálás
+2) Állapot és health check
+3) Mentés
+4) Visszaállítás
+5) Frissítés
+6) Naplók
+7) Eltávolítás
+0) Kilépés
+MENU
+  read -r -p "Választás: " choice
+  case "$choice" in
+    1) "$ROOT_DIR/scripts/install.sh" ;;
+    2) "$ROOT_DIR/scripts/health.sh" ;;
+    3) "$ROOT_DIR/scripts/backup.sh" ;;
+    4) read -r -p "Mentés fájlja: " f; "$ROOT_DIR/scripts/restore.sh" "$f" ;;
+    5) "$ROOT_DIR/scripts/update.sh" ;;
+    6) cd "$ROOT_DIR"; source lib/common.sh; compose logs --tail=200 -f ;;
+    7) "$ROOT_DIR/scripts/uninstall.sh" ;;
+    0) exit 0 ;;
+    *) echo "Érvénytelen választás." ;;
+  esac
+  read -r -p "Enter a folytatáshoz..." _
+done

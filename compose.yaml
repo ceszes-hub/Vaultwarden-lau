@@ -1,0 +1,22 @@
+services:
+  vaultwarden:
+    image: ${VAULTWARDEN_IMAGE:-vaultwarden/server:1.36.0}
+    container_name: ${CONTAINER_NAME:-vaultwarden}
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ${DATA_DIR:-./data}:/data
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "/healthcheck.sh"]
+      interval: 60s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"

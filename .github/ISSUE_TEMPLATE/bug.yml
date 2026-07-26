@@ -1,0 +1,14 @@
+name: Hibajelentés
+description: Hiba jelentése Vaultwarden LAU használatakor
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Hiba leírása
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Környezet
+      description: OS, Docker verzió, proxy mód. Titkot ne adj meg.
