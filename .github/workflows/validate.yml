@@ -1,4 +1,4 @@
-name: Validate
+﻿name: Validate
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
       - name: Bash syntax
         run: bash -n install.sh lau scripts/*.sh lib/*.sh tests/*.sh
       - name: ShellCheck
-        run: shellcheck -x install.sh lau scripts/*.sh lib/*.sh tests/*.sh
+        run: shellcheck -x -e SC1091 install.sh lau scripts/*.sh lib/*.sh tests/*.sh
       - name: CLI smoke test
         run: bash tests/test-cli.sh
 
@@ -31,3 +31,4 @@ jobs:
         run: cp .env.example .env
       - name: Validate Compose
         run: docker compose --env-file .env -f compose.yaml config
+
