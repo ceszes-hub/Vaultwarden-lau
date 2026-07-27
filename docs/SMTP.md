@@ -1,16 +1,5 @@
 # SMTP
 
-## Gmail
-- Host: `smtp.gmail.com`
-- Port: `587`
-- Security: `starttls`
-- Auth: `Login`
-- Jelszó: Google alkalmazásjelszó, nem a normál fiókjelszó
+A varázsló Gmail, Microsoft 365 és egyedi SMTP beállításokat támogat. Gmailnél App Password szükséges. A hitelesítési adatok a helyi `.env` fájlba kerülnek, amelyet a Git kizár.
 
-## Microsoft 365
-- Host: `smtp.office365.com`
-- Port: `587`
-- Security: `starttls`
-- Auth: `Login`
-
-A tenant és a postafiók szabályaitól függően az SMTP AUTH külön engedélyezést igényelhet.
+Az SMTP később a Vaultwarden `/admin` felületén is módosítható; az admin felületen elmentett konfiguráció elsőbbségét és működését mindig ellenőrizd az adott Vaultwarden-verzióban.

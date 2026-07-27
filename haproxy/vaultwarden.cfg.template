@@ -1,10 +1,10 @@
-# Illeszd a meglévő HAProxy konfiguráció megfelelő részeibe.
-frontend https_front
+frontend vaultwarden_https
     bind *:443 ssl crt /etc/haproxy/certs/__DOMAIN__.pem
+    mode http
     acl host_vault hdr(host) -i __DOMAIN__
     use_backend vaultwarden_backend if host_vault
-
 backend vaultwarden_backend
-    option httpchk GET /alive
-    http-check expect status 200
+    mode http
+    option forwardfor
+    http-request set-header X-Forwarded-Proto https
     server vaultwarden 127.0.0.1:__PORT__ check
