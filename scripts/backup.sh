@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-source "$ROOT_DIR/lib/common.sh"
-cd "$ROOT_DIR"
-mkdir -p backups
-stamp="$(date +%Y%m%d-%H%M%S)"
-compose exec -T vaultwarden /vaultwarden backup >/dev/null 2>&1 || warn "A beépített SQLite backup nem futott; fájlszintű mentés készül."
-tar --exclude='./backups' --exclude='./.git' -czf "backups/vaultwarden-${stamp}.tar.gz" data .env compose.yaml compose.override.yaml
-find backups -type f -name 'vaultwarden-*.tar.gz' -mtime +30 -delete
-ok "Mentés: backups/vaultwarden-${stamp}.tar.gz"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"; source "$ROOT_DIR/lib/common.sh"
+cd "$ROOT_DIR"; [[ -d data ]] || die "A data könyvtár nem található."; mkdir -p backups; chmod 700 backups
+stamp="$(date +%Y%m%d-%H%M%S)"; out="backups/vaultwarden-${stamp}.tar.gz"
+compose exec -T vaultwarden sh -c 'sqlite3 /data/db.sqlite3 ".backup /data/db-backup.sqlite3"' >/dev/null 2>&1 || warn "SQLite online backup nem futott; fájlrendszer-pillanatkép készül."
+tar --exclude='data/icon_cache' -czf "$out" data .env compose.override.yaml 2>/dev/null || tar -czf "$out" data .env compose.override.yaml
+rm -f data/db-backup.sqlite3
+sha256sum "$out" > "$out.sha256"; chmod 600 "$out" "$out.sha256"; ok "Backup: $out"

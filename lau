@@ -1,32 +1,83 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-while true; do
-  clear || true
-  cat <<'MENU'
-==================================
- Vaultwarden LAU Control
-==================================
+
+usage(){
+  cat <<'HELP'
+Vaultwarden LAU
+Használat: lau <parancs>
+
+Parancsok:
+  install     Telepítés vagy újrakonfigurálás
+  status      Konténerállapot és rövid health check
+  doctor      Teljes rendszerdiagnosztika
+  update      Vaultwarden frissítése
+  backup      Biztonsági mentés készítése
+  restore     Biztonsági mentés visszaállítása
+  logs        Vaultwarden naplók követése
+  restart     Vaultwarden újraindítása
+  stop        Vaultwarden leállítása
+  uninstall   Telepítés eltávolítása
+  menu        Interaktív menü
+  help        Súgó
+HELP
+}
+
+run_menu(){
+  while true; do
+    cat <<'MENU'
+
+Vaultwarden LAU
 1) Telepítés / újrakonfigurálás
 2) Állapot és health check
-3) Mentés
-4) Visszaállítás
-5) Frissítés
-6) Naplók
-7) Eltávolítás
+3) Teljes diagnosztika (doctor)
+4) Frissítés
+5) Backup
+6) Restore
+7) Naplók
+8) Újraindítás
+9) Leállítás / eltávolítás
 0) Kilépés
 MENU
-  read -r -p "Választás: " choice
-  case "$choice" in
-    1) "$ROOT_DIR/scripts/install.sh" ;;
-    2) "$ROOT_DIR/scripts/health.sh" ;;
-    3) "$ROOT_DIR/scripts/backup.sh" ;;
-    4) read -r -p "Mentés fájlja: " f; "$ROOT_DIR/scripts/restore.sh" "$f" ;;
-    5) "$ROOT_DIR/scripts/update.sh" ;;
-    6) cd "$ROOT_DIR"; source lib/common.sh; compose logs --tail=200 -f ;;
-    7) "$ROOT_DIR/scripts/uninstall.sh" ;;
-    0) exit 0 ;;
-    *) echo "Érvénytelen választás." ;;
-  esac
-  read -r -p "Enter a folytatáshoz..." _
-done
+    read -r -p "Választás: " choice
+    case "$choice" in
+      1) "$ROOT_DIR/scripts/install.sh";;
+      2) "$ROOT_DIR/scripts/health.sh";;
+      3) "$ROOT_DIR/scripts/doctor.sh" || true;;
+      4) "$ROOT_DIR/scripts/update.sh";;
+      5) "$ROOT_DIR/scripts/backup.sh";;
+      6) read -r -p "Backup útvonala (üres = legfrissebb): " p; "$ROOT_DIR/scripts/restore.sh" "$p";;
+      7) command_logs;;
+      8) command_restart;;
+      9) "$ROOT_DIR/scripts/uninstall.sh";;
+      0) exit 0;;
+      *) echo "Érvénytelen választás.";;
+    esac
+  done
+}
+
+load_common(){ # shellcheck source=lib/common.sh
+  source "$ROOT_DIR/lib/common.sh"
+  cd "$ROOT_DIR"
+  [[ -f "$ENV_FILE" ]] || die "Nincs .env; előbb futtasd: ./lau install"
+}
+command_logs(){ load_common; compose logs -f --tail=100 vaultwarden; }
+command_restart(){ load_common; compose restart vaultwarden; }
+command_stop(){ load_common; compose stop vaultwarden; }
+
+command="${1:-menu}"
+case "$command" in
+  install) exec "$ROOT_DIR/scripts/install.sh";;
+  status|health) exec "$ROOT_DIR/scripts/health.sh";;
+  doctor) exec "$ROOT_DIR/scripts/doctor.sh";;
+  update) exec "$ROOT_DIR/scripts/update.sh";;
+  backup) exec "$ROOT_DIR/scripts/backup.sh";;
+  restore) shift; exec "$ROOT_DIR/scripts/restore.sh" "${1:-}";;
+  logs) command_logs;;
+  restart) command_restart;;
+  stop) command_stop;;
+  uninstall) exec "$ROOT_DIR/scripts/uninstall.sh";;
+  menu) run_menu;;
+  help|-h|--help) usage;;
+  *) printf 'Ismeretlen parancs: %s\n\n' "$command" >&2; usage >&2; exit 2;;
+esac

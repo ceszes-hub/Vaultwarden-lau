@@ -1,5 +1,15 @@
-# Mentés és visszaállítás
+# Backup és restore
 
-A `scripts/backup.sh` menti a Vaultwarden adatkönyvtárát, `.env` fájlját és Compose-konfigurációját. A mentések alapértelmezett megőrzése 30 nap.
+Mentés:
 
-Éles környezetben a mentéseket másik gépre vagy objektumtárba is másold, és rendszeresen próbáld ki a visszaállítást.
+```bash
+sudo ./scripts/backup.sh
+```
+
+Visszaállítás:
+
+```bash
+sudo ./scripts/restore.sh backups/vaultwarden-YYYYMMDD-HHMMSS.tar.gz
+```
+
+A backup tartalmazza a `data/`, `.env` és `compose.override.yaml` fájlokat. Titkos adat, ezért titkosított, elkülönített tárhelyen is őrizd. A restore előtt a jelenlegi `data/` könyvtár időbélyeges néven megmarad.

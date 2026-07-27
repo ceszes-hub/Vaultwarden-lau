@@ -1,10 +1,27 @@
 # Changelog
 
+## [1.3.0] - 2026-07-27
+
+### Added
+- Új `lau <parancs>` parancssori felület.
+- `lau doctor` teljes rendszerdiagnosztika.
+- OS, Docker, Compose, konténer, lemez, port, DNS, HTTP, TLS és backup ellenőrzések.
+- Géppel feldolgozható kilépési kód a diagnosztikához.
+- Külön `docs/DOCTOR.md` dokumentáció.
+
+### Changed
+- Az interaktív menü közvetlenül elérhető a `lau menu` paranccsal.
+
+## 1.2.0 - 2026-07-27
+
+- moduláris telepítőarchitektúra;
+- új pre-flight riport és proxyfelismerés;
+- biztonságosabb `.env` kezelés;
+- idempotens belépési pont és kezelőmenü;
+- SMTP- és Certbot-varázsló;
+- backup, restore, update és health check fejlesztések;
+- kibővített dokumentáció és CI.
+
 ## 1.1.0
-- interaktív LAU vezérlő
-- reverse proxy automatikus felismerése
-- meglévő Docker Nginx, host Nginx és HAProxy támogatás
-- Nginx automatikus telepítése
-- Gmail, Microsoft 365 és egyedi SMTP varázsló
-- moduláris `lib/` felépítés
-- health check, backup, restore, update és uninstall
+
+- első GitHubra kész változat.

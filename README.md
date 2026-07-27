@@ -1,44 +1,67 @@
 # Vaultwarden LAU
 
-Interaktív, Docker Compose-alapú Vaultwarden telepítő és karbantartó eszköz Ubuntu/Debian rendszerekhez.
+Moduláris, interaktív Vaultwarden-telepítő Debian/Ubuntu szerverekhez. Kezeli a Docker telepítését, a meglévő vagy új reverse proxyt, SMTP-t, TLS-t, backupot, restore-t, frissítést és health checket.
 
-## Támogatott reverse proxy módok
+> A projekt nem hivatalos Vaultwarden-termék. Használat előtt készíts biztonsági mentést, és olvasd el a Vaultwarden dokumentációját.
 
-- meglévő Dockeres Nginx
-- meglévő hostos Nginx
-- meglévő HAProxy
-- Nginx automatikus telepítése
-- proxy nélküli tesztmód
 
-A telepítő megpróbálja felismerni a már futó proxykat, de a rendszergazda választja ki a használandó módot.
+## LAU parancsok
 
-## Gyors indítás
+```bash
+sudo ./lau install
+sudo ./lau status
+sudo ./lau doctor
+sudo ./lau update
+sudo ./lau backup
+sudo ./lau restore
+sudo ./lau logs
+sudo ./lau restart
+```
+
+A teljes diagnosztika dokumentációja: [`docs/DOCTOR.md`](docs/DOCTOR.md).
+
+## Gyors indulás
 
 ```bash
 git clone https://github.com/ceszes-hub/Vaultwarden-lau.git
 cd Vaultwarden-lau
-chmod +x lau scripts/*.sh lib/*.sh
+chmod +x install.sh lau scripts/*.sh lib/*.sh
+sudo ./install.sh
+```
+
+Későbbi kezelés:
+
+```bash
 sudo ./lau
 ```
 
+## Támogatott proxy módok
+
+- meglévő Dockeres Nginx;
+- meglévő hostos Nginx;
+- meglévő HAProxy;
+- automatikusan telepített hostos Nginx;
+- proxy nélküli tesztmód.
+
+## Fontos fájlok
+
+- `install.sh`: egyszerű belépési pont;
+- `lau`: kezelőmenü;
+- `scripts/`: műveletek;
+- `lib/`: újrahasznosítható modulok;
+- `.env`: titkos konfiguráció, nem kerül Gitbe;
+- `compose.override.yaml`: a kiválasztott hálózati mód.
+
 ## Biztonság
 
-A `.env`, a trezoradatok és a mentések Gitből ki vannak zárva. Az admin tokent a telepítő automatikusan generálja. A korábban megosztott vagy naplóba került tokeneket azonnal cserélni kell.
+A `.env` jogosultsága `600`. Nyilvános regisztráció alapértelmezetten tiltott. Az admin token telepítéskor véletlenszerűen generálódik. A mentések titkos adatokat tartalmazhatnak, ezért védd őket és tárold külön gépen is.
 
-## SMTP
-
-A telepítő Gmail, Microsoft 365 és egyedi SMTP beállítást kínál. Gmailhez kétlépcsős azonosítás és alkalmazásjelszó szükséges. SMTP később a Vaultwarden `/admin` felületén is módosítható.
-
-## Parancsok
+## Tesztelés
 
 ```bash
-./lau
-./scripts/health.sh
-./scripts/backup.sh
-./scripts/update.sh
-./scripts/restore.sh backups/vaultwarden-DATUM.tar.gz
+bash -n install.sh lau scripts/*.sh lib/*.sh
+docker compose --env-file .env.example -f compose.yaml config
+shellcheck install.sh lau scripts/*.sh lib/*.sh
 ```
 
-## TLS
-
-Az automatikus Nginx-telepítés létrehozza a HTTP virtual hostot. A TLS-t a környezethez illeszkedő módon kell kiadni, például Certbottal, acme.sh-val, DNS challenge-dzsel vagy meglévő tanúsítvánnyal.
+Részletek: `docs/`.
