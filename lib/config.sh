@@ -5,7 +5,8 @@ source "${ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}/lib/common
 initialize_env(){
   [[ -f "$ENV_FILE" ]] || cp "$ROOT_DIR/.env.example" "$ENV_FILE"
   chmod 600 "$ENV_FILE"
-  local token="$(get_env ADMIN_TOKEN)"
+  local token
+  token="$(get_env ADMIN_TOKEN)"
   if [[ -z "$token" || "$token" == CHANGE_ME ]]; then
     command_exists openssl || die "Az openssl szükséges az ADMIN_TOKEN generálásához."
     set_env ADMIN_TOKEN "$(openssl rand -base64 48 | tr -d '\n')"

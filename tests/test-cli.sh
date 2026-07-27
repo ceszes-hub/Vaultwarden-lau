@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-output="$($ROOT_DIR/lau help)"
+output="$("$ROOT_DIR/lau" help)"
 grep -q 'doctor' <<<"$output"
 grep -q 'backup' <<<"$output"
 if "$ROOT_DIR/lau" does-not-exist >/dev/null 2>&1; then

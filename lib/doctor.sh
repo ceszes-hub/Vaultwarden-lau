@@ -33,11 +33,19 @@ check_docker(){
 }
 
 check_files(){
-  [[ -f "$ROOT_DIR/compose.yaml" ]] && _doctor_ok "compose.yaml megtalálható." || _doctor_fail "compose.yaml hiányzik."
+  if [[ -f "$ROOT_DIR/compose.yaml" ]]; then
+    _doctor_ok "compose.yaml megtalálható."
+  else
+    _doctor_fail "compose.yaml hiányzik."
+  fi
   if [[ -f "$ENV_FILE" ]]; then
     _doctor_ok ".env megtalálható."
     mode="$(stat -c '%a' "$ENV_FILE" 2>/dev/null || true)"
-    [[ "$mode" == 600 || "$mode" == 400 ]] && _doctor_ok ".env jogosultsága megfelelő ($mode)." || _doctor_warn ".env jogosultsága ${mode:-ismeretlen}; javasolt: chmod 600 .env"
+    if [[ "$mode" == 600 || "$mode" == 400 ]]; then
+      _doctor_ok ".env jogosultsága megfelelő ($mode)."
+    else
+      _doctor_warn ".env jogosultsága ${mode:-ismeretlen}; javasolt: chmod 600 .env"
+    fi
   else
     _doctor_fail ".env hiányzik; futtasd a telepítőt."
   fi
@@ -55,7 +63,11 @@ check_container(){
   if ! docker inspect "$container" >/dev/null 2>&1; then _doctor_fail "A(z) $container konténer nem található."; return; fi
   status="$(docker inspect --format '{{.State.Status}}' "$container" 2>/dev/null || true)"
   health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$container" 2>/dev/null || true)"
-  [[ "$status" == running ]] && _doctor_ok "A(z) $container konténer fut." || _doctor_fail "A(z) $container konténer állapota: ${status:-ismeretlen}."
+  if [[ "$status" == "running" ]]; then
+    _doctor_ok "A(z) $container konténer fut."
+  else
+    _doctor_fail "A(z) $container konténer állapota: ${status:-ismeretlen}."
+  fi
   case "$health" in healthy) _doctor_ok "A konténer health checkje sikeres.";; starting) _doctor_warn "A konténer health checkje még indul.";; unhealthy) _doctor_fail "A konténer health checkje sikertelen.";; '') _doctor_warn "A konténerhez nincs health státusz.";; esac
 }
 
@@ -75,7 +87,11 @@ check_ports(){
   for port in 80 443; do
     if command_exists ss; then
       state="$(ss -H -ltn "sport = :$port" 2>/dev/null | head -1 || true)"
-      [[ -n "$state" ]] && _doctor_ok "A TCP/$port porton szolgáltatás figyel." || _doctor_warn "A TCP/$port porton nem figyel szolgáltatás."
+      if [[ -n "$state" ]]; then
+        _doctor_ok "A TCP/$port porton szolgáltatás figyel."
+      else
+        _doctor_warn "A TCP/$port porton nem figyel szolgáltatás."
+      fi
     else
       _doctor_warn "Az ss parancs hiányzik; a TCP/$port port nem ellenőrizhető."
     fi
@@ -89,10 +105,21 @@ check_dns(){
   raw="$(get_env DOMAIN)"; [[ -n "$raw" ]] || { _doctor_warn "DOMAIN nincs beállítva."; return; }
   domain="$(_normalize_domain "$raw")"
   if command_exists getent; then resolved="$(getent ahostsv4 "$domain" 2>/dev/null | awk 'NR==1 {print $1}')"; else resolved=""; fi
-  [[ -n "$resolved" ]] && _doctor_ok "DNS feloldás: $domain → $resolved" || { _doctor_fail "A domain nem oldható fel: $domain"; return; }
+  if [[ -n "$resolved" ]]; then
+    _doctor_ok "DNS feloldás: $domain → $resolved"
+  else
+    _doctor_fail "A domain nem oldható fel: $domain"
+    return
+  fi
   if command_exists curl; then
     public_ip="$(curl -4fsS --max-time 5 https://api.ipify.org 2>/dev/null || true)"
-    [[ -z "$public_ip" ]] && _doctor_warn "A publikus IP-cím nem kérdezhető le." || { [[ "$resolved" == "$public_ip" ]] && _doctor_ok "A DNS a szerver publikus IP-címére mutat." || _doctor_warn "DNS: $resolved, szerver publikus IP: $public_ip. NAT/proxy esetén ez lehet helyes."; }
+    if [[ -z "$public_ip" ]]; then
+      _doctor_warn "A publikus IP-cím nem kérdezhető le."
+    elif [[ "$resolved" == "$public_ip" ]]; then
+      _doctor_ok "A DNS a szerver publikus IP-címére mutat."
+    else
+      _doctor_warn "DNS: $resolved, szerver publikus IP: $public_ip. NAT/proxy esetén ez lehet helyes."
+    fi
   fi
 }
 
@@ -102,12 +129,29 @@ check_http_tls(){
   [[ "$raw" =~ ^https?:// ]] && url="$raw" || url="https://$raw"
   if command_exists curl; then
     code="$(curl -LsS -o /dev/null -w '%{http_code}' --max-time 12 "$url/alive" 2>/dev/null || true)"
-    [[ "$code" =~ ^(2|3)[0-9][0-9]$ ]] && _doctor_ok "Vaultwarden HTTP ellenőrzés: $code ($url/alive)." || _doctor_fail "Vaultwarden HTTP ellenőrzés sikertelen: ${code:-kapcsolati hiba} ($url/alive)."
+    if [[ "$code" =~ ^(2|3)[0-9][0-9]$ ]]; then
+      _doctor_ok "Vaultwarden HTTP ellenőrzés: $code ($url/alive)."
+    else
+      _doctor_fail "Vaultwarden HTTP ellenőrzés sikertelen: ${code:-kapcsolati hiba} ($url/alive)."
+    fi
   else _doctor_warn "A curl hiányzik; HTTP ellenőrzés kihagyva."; fi
   domain="$(_normalize_domain "$raw")"
   if command_exists openssl && timeout 12 openssl s_client -connect "$domain:443" -servername "$domain" </dev/null >/tmp/lau-doctor-tls.$$ 2>/dev/null; then
     expiry="$(openssl x509 -noout -enddate </tmp/lau-doctor-tls.$$ 2>/dev/null | cut -d= -f2-)"; rm -f /tmp/lau-doctor-tls.$$
-    if [[ -n "$expiry" ]]; then epoch="$(date -d "$expiry" +%s 2>/dev/null || true)"; now="$(date +%s)"; if [[ "$epoch" =~ ^[0-9]+$ ]]; then days=$(((epoch-now)/86400)); (( days >= 30 )) && _doctor_ok "TLS-tanúsítvány még $days napig érvényes." || { (( days >= 7 )) && _doctor_warn "TLS-tanúsítvány $days nap múlva lejár." || _doctor_fail "TLS-tanúsítvány $days nap múlva lejár vagy már lejárt."; }; fi; fi
+    if [[ -n "$expiry" ]]; then
+      epoch="$(date -d "$expiry" +%s 2>/dev/null || true)"
+      now="$(date +%s)"
+      if [[ "$epoch" =~ ^[0-9]+$ ]]; then
+        days=$(((epoch - now) / 86400))
+        if (( days >= 30 )); then
+          _doctor_ok "TLS-tanúsítvány még $days napig érvényes."
+        elif (( days >= 7 )); then
+          _doctor_warn "TLS-tanúsítvány $days nap múlva lejár."
+        else
+          _doctor_fail "TLS-tanúsítvány $days nap múlva lejár vagy már lejárt."
+        fi
+      fi
+    fi
   else _doctor_warn "A TLS-tanúsítvány nem ellenőrizhető."; rm -f /tmp/lau-doctor-tls.$$; fi
 }
 
@@ -119,7 +163,11 @@ check_backups(){
   latest="$(find "$backup_dir" -maxdepth 1 -type f -printf '%T@ %p\n' 2>/dev/null | sort -nr | awk 'NR==1 {$1=""; sub(/^ /,""); print}' || true)"
   [[ -n "$latest" ]] || { _doctor_warn "Nem található backup a következő helyen: $backup_dir"; return; }
   mtime="$(stat -c '%Y' "$latest" 2>/dev/null || echo 0)"; now="$(date +%s)"; age=$(((now-mtime)/86400))
-  (( age <= 7 )) && _doctor_ok "Legutóbbi backup: $age napos ($(basename "$latest"))." || _doctor_warn "A legutóbbi backup $age napos ($(basename "$latest"))."
+  if (( age <= 7 )); then
+    _doctor_ok "Legutóbbi backup: $age napos ($(basename "$latest"))."
+  else
+    _doctor_warn "A legutóbbi backup $age napos ($(basename "$latest"))."
+  fi
 }
 
 run_doctor(){
