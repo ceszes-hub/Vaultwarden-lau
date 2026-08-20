@@ -1,6 +1,6 @@
 services:
   vaultwarden:
-    image: ${VAULTWARDEN_IMAGE:-vaultwarden/server:1.36.0}
+    image: ${VAULTWARDEN_IMAGE:-ghcr.io/dani-garcia/vaultwarden:latest}
     container_name: ${CONTAINER_NAME:-vaultwarden}
     restart: unless-stopped
     env_file: [.env]
